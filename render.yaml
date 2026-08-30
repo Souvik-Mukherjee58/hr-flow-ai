@@ -3,7 +3,7 @@ services:
     name: hr-flow-ai-backend
     runtime: node
     rootDir: backend
-    buildCommand: rm -rf node_modules && npm install
+    buildCommand: rm -rf node_modules && npm install --build-from-source
     startCommand: node index.js
     plan: free
     envVars:
