@@ -9,6 +9,9 @@ RUN apk add --no-cache python3 make g++ sqlite
 # Clean npm cache completely
 RUN npm cache clean --force
 
+# Set environment to force native module builds
+ENV npm_config_build_from_source=true
+
 COPY backend/package*.json ./
 
 # Install dependencies with build from source

@@ -1,8 +1,10 @@
 services:
   - type: web
     name: hr-flow-ai-backend
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
+    runtime: node
+    rootDir: backend
+    buildCommand: rm -rf node_modules package-lock.json && npm install
+    startCommand: node index.js
     plan: free
     envVars:
       - key: NODE_ENV
@@ -15,5 +17,5 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
-    # Force rebuild by changing this value
-    version: "4"
+      - key: npm_config_build_from_source
+        value: "true"
