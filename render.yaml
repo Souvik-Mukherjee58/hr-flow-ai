@@ -3,7 +3,7 @@ services:
     name: hr-flow-ai-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm install && npm rebuild sqlite3
     startCommand: node index.js
     plan: free
     envVars:
