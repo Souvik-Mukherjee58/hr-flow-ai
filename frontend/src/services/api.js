@@ -38,19 +38,12 @@ async function request(endpoint, options = {}) {
 
   let res;
   try {
-    res = await fetch(`/api${endpoint.startsWith('/api') ? endpoint.slice(4) : endpoint}`, {
+    res = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
     });
   } catch (netErr) {
-    try {
-      res = await fetch(`${API_BASE}${endpoint}`, {
-        ...options,
-        headers,
-      });
-    } catch (e) {
-      throw new Error("Unable to connect to backend server. Please ensure backend is running (`cd backend && npm start`).");
-    }
+    throw new Error("Unable to connect to backend server. Please ensure backend is running.");
   }
 
   const contentType = res.headers.get("content-type") || "";
