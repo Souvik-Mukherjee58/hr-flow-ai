@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "test": "node test_routes.js"
+    "test": "node test_routes.js",
+    "postinstall": "npm rebuild sqlite3"
   },
   "dependencies": {
     "@google/genai": "^2.16.0",
