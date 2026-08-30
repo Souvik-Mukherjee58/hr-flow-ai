@@ -144,29 +144,152 @@ router.get("/leave/history", async (req, res) => {
   }
 });
 
-// Get overview analytics
-router.get("/analytics", async (req, res) => {
+// Get Calendar Events & Team Availability Overlap Analysis
+router.get("/calendar/events", async (req, res) => {
   try {
-    const totalEmployees = await dbGet("SELECT COUNT(*) as count FROM employees");
-    const leaveCount = await dbGet("SELECT COUNT(*) as count FROM leave_requests");
-    const pendingHr = await dbGet("SELECT COUNT(*) as count FROM leave_requests WHERE hr_decision = 'Pending'");
-    const highBurnout = await dbGet("SELECT COUNT(*) as count FROM employees WHERE burnout_risk IN ('High', 'Critical')");
+    const rawLeaves = await dbAll(`
+      SELECT 
+        l.workflow_id, l.employee_id, l.employee_name, l.leave_type, l.days,
+        l.reason, l.status, l.recommendation, l.max_policy_days, l.is_emergency,
+        l.requires_human_approval, l.hr_decision, l.hr_notes, l.hr_reviewer,
+        l.start_date, l.end_date, l.created_at,
+        e.department, e.role, e.avatar, e.workload_score, e.burnout_risk, e.leave_balance, e.email
+      FROM leave_requests l
+      LEFT JOIN employees e ON l.employee_id = e.id
+      ORDER BY l.start_date ASC, l.created_at DESC
+    `);
+
+    const employees = await dbAll("SELECT * FROM employees ORDER BY name ASC");
+
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Normalize dates if missing in older records
+    const events = rawLeaves.map((item, idx) => {
+      let start = item.start_date;
+      let end = item.end_date;
+      if (!start) {
+        const d = new Date();
+        d.setDate(d.getDate() + ((idx % 7) + 1));
+        start = d.toISOString().split("T")[0];
+      }
+      if (!end) {
+        const d = new Date(start);
+        d.setDate(d.getDate() + Math.max(0, (item.days || 1) - 1));
+        end = d.toISOString().split("T")[0];
+      }
+
+      return {
+        ...item,
+        start_date: start,
+        end_date: end,
+        department: item.department || "Engineering",
+        role: item.role || "Team Member",
+        avatar: item.avatar || (item.employee_name ? item.employee_name.slice(0, 2).toUpperCase() : "EM"),
+        burnout_risk: item.burnout_risk || "Low",
+        workload_score: item.workload_score || 50,
+      };
+    });
+
+    // Detect Department Overlaps & Collisions by Date
+    const dateDeptMap = {}; // { "YYYY-MM-DD": { "Engineering": [empName1, empName2] } }
+    events.forEach((ev) => {
+      // Only consider approved or pending leaves
+      if (ev.status === "AUTO_REJECTED" || ev.hr_decision === "Rejected") return;
+
+      const cur = new Date(ev.start_date);
+      const end = new Date(ev.end_date);
+      // Loop across date span
+      while (cur <= end) {
+        const dStr = cur.toISOString().split("T")[0];
+        if (!dateDeptMap[dStr]) dateDeptMap[dStr] = {};
+        if (!dateDeptMap[dStr][ev.department]) dateDeptMap[dStr][ev.department] = [];
+        dateDeptMap[dStr][ev.department].push({
+          id: ev.employee_id,
+          name: ev.employee_name,
+          workflowId: ev.workflow_id,
+          role: ev.role,
+        });
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
+
+    const overlaps = [];
+    Object.keys(dateDeptMap).forEach((dStr) => {
+      const depts = dateDeptMap[dStr];
+      Object.keys(depts).forEach((dept) => {
+        const emps = depts[dept];
+        if (emps.length >= 2) {
+          const totalInDept = employees.filter((e) => e.department === dept).length || 2;
+          const capacityLostPct = Math.min(100, Math.round((emps.length / totalInDept) * 100));
+          overlaps.push({
+            date: dStr,
+            department: dept,
+            count: emps.length,
+            employees: emps.map((e) => e.name),
+            capacityLostPct,
+            severity: capacityLostPct >= 50 ? "Critical" : "Warning",
+            description: `${emps.length} ${dept} members scheduled off simultaneously (${emps.map((e) => e.name).join(", ")}). Capacity down by ${capacityLostPct}%.`,
+          });
+        }
+      });
+    });
+
+    // Department Capacity & Coverage Summary
+    const departments = [...new Set(employees.map((e) => e.department))];
+    const departmentCoverage = departments.map((dept) => {
+      const totalStaff = employees.filter((e) => e.department === dept).length;
+      const deptLeaves = events.filter(
+        (ev) =>
+          ev.department === dept &&
+          ev.status !== "AUTO_REJECTED" &&
+          ev.hr_decision !== "Rejected" &&
+          todayStr >= ev.start_date &&
+          todayStr <= ev.end_date
+      );
+      const onLeaveCount = deptLeaves.length;
+      const availableStaff = Math.max(0, totalStaff - onLeaveCount);
+      const coveragePct = totalStaff > 0 ? Math.round((availableStaff / totalStaff) * 100) : 100;
+
+      return {
+        department: dept,
+        totalStaff,
+        currentlyAway: onLeaveCount,
+        availableStaff,
+        coveragePct,
+        status: coveragePct < 60 ? "Critical" : coveragePct < 85 ? "Warning" : "Optimal",
+      };
+    });
+
+    // Summary KPIs
+    const onLeaveTodayCount = events.filter(
+      (ev) =>
+        ev.status !== "AUTO_REJECTED" &&
+        ev.hr_decision !== "Rejected" &&
+        todayStr >= ev.start_date &&
+        todayStr <= ev.end_date
+    ).length;
+
+    const totalStaffCount = employees.length || 1;
+    const overallAvailability = Math.max(0, Math.round(((totalStaffCount - onLeaveTodayCount) / totalStaffCount) * 100));
 
     return res.status(200).json({
       success: true,
-      analytics: {
-        totalEmployees: totalEmployees?.count || 0,
-        leaveRequestsCount: leaveCount?.count || 0,
-        pendingHrReviewCount: pendingHr?.count || 0,
-        highBurnoutRiskCount: highBurnout?.count || 0,
-        aiAccuracy: "97.4%",
-        averageWorkload: 68
-      }
+      summary: {
+        totalEvents: events.length,
+        onLeaveToday: onLeaveTodayCount,
+        totalEmployees: totalStaffCount,
+        overallAvailability: `${overallAvailability}%`,
+        totalCollisions: overlaps.length,
+      },
+      departmentCoverage,
+      overlaps,
+      events,
     });
   } catch (err) {
-    console.error("Error fetching analytics:", err);
-    return res.status(500).json({ success: false, message: "Failed to fetch analytics", error: err.message });
+    console.error("Error generating calendar events:", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch calendar events", error: err.message });
   }
 });
 
 export default router;
+

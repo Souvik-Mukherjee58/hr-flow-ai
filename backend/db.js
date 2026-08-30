@@ -99,6 +99,8 @@ export async function initDb() {
       hr_decision TEXT DEFAULT 'Pending',
       hr_notes TEXT,
       hr_reviewer TEXT,
+      start_date TEXT,
+      end_date TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -131,6 +133,12 @@ export async function initDb() {
   } catch (e) {}
   try {
     await dbRun("ALTER TABLE leave_requests ADD COLUMN hr_reviewer TEXT");
+  } catch (e) {}
+  try {
+    await dbRun("ALTER TABLE leave_requests ADD COLUMN start_date TEXT");
+  } catch (e) {}
+  try {
+    await dbRun("ALTER TABLE leave_requests ADD COLUMN end_date TEXT");
   } catch (e) {}
 
   // Seed default policy document attachment if empty
@@ -188,6 +196,144 @@ export async function initDb() {
       await dbRun(
         "INSERT INTO employees (id, name, department, role, email, workload_score, burnout_risk, leave_balance, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [emp.id, emp.name, emp.department, emp.role, emp.email, emp.workload_score, emp.burnout_risk, emp.leave_balance, emp.avatar]
+      );
+    }
+  }
+
+  // Seed default leave requests for calendar display if empty
+  const leaveCount = await dbGet("SELECT COUNT(*) as count FROM leave_requests");
+  if (leaveCount && leaveCount.count === 0) {
+    const today = new Date();
+    const fmt = (d) => d.toISOString().split("T")[0];
+    const addDays = (d, n) => {
+      const copy = new Date(d);
+      copy.setDate(copy.getDate() + n);
+      return copy;
+    };
+
+    const seedLeaves = [
+      {
+        workflow_id: "WF-CAL-101",
+        employee_id: "EMP-101",
+        employee_name: "Alex Rivera",
+        leave_type: "Vacation",
+        days: 3,
+        reason: "Mid-year mental refresh & family visit",
+        status: "APPROVED_BY_HR",
+        recommendation: "APPROVED",
+        max_policy_days: 3,
+        is_emergency: 0,
+        requires_human_approval: 1,
+        hr_decision: "Approved",
+        hr_notes: "Approved by HR Admin. Team coverage confirmed.",
+        hr_reviewer: "Sarah Jenkins",
+        start_date: fmt(addDays(today, 1)),
+        end_date: fmt(addDays(today, 3)),
+      },
+      {
+        workflow_id: "WF-CAL-102",
+        employee_id: "EMP-103",
+        employee_name: "David Chen",
+        leave_type: "Emergency Leave",
+        days: 4,
+        reason: "Medical surgery and recovery",
+        status: "APPROVED_BY_HR",
+        recommendation: "APPROVED_EMERGENCY_EXCEPTION",
+        max_policy_days: 3,
+        is_emergency: 1,
+        requires_human_approval: 1,
+        hr_decision: "Approved",
+        hr_notes: "Emergency policy exception granted per doctor's certification.",
+        hr_reviewer: "Sarah Jenkins",
+        start_date: fmt(addDays(today, 2)),
+        end_date: fmt(addDays(today, 5)),
+      },
+      {
+        workflow_id: "WF-CAL-103",
+        employee_id: "EMP-102",
+        employee_name: "Jessica Taylor",
+        leave_type: "Casual Leave",
+        days: 2,
+        reason: "Personal family event",
+        status: "APPROVED_BY_HR",
+        recommendation: "APPROVED",
+        max_policy_days: 3,
+        is_emergency: 0,
+        requires_human_approval: 1,
+        hr_decision: "Approved",
+        hr_notes: "Sprint roadmap milestone concluded.",
+        hr_reviewer: "Sarah Jenkins",
+        start_date: fmt(addDays(today, 7)),
+        end_date: fmt(addDays(today, 8)),
+      },
+      {
+        workflow_id: "WF-CAL-104",
+        employee_id: "EMP-105",
+        employee_name: "Marcus Vance",
+        leave_type: "Sick Leave",
+        days: 2,
+        reason: "Seasonal flu recovery",
+        status: "APPROVED_BY_HR",
+        recommendation: "APPROVED",
+        max_policy_days: 3,
+        is_emergency: 0,
+        requires_human_approval: 1,
+        hr_decision: "Approved",
+        hr_notes: "Approved.",
+        hr_reviewer: "Sarah Jenkins",
+        start_date: fmt(addDays(today, -3)),
+        end_date: fmt(addDays(today, -2)),
+      },
+      {
+        workflow_id: "WF-CAL-105",
+        employee_id: "EMP-106",
+        employee_name: "Emily Watson",
+        leave_type: "Vacation",
+        days: 3,
+        reason: "Annual design conference & PTO",
+        status: "Pending",
+        recommendation: "FORWARDED_TO_HR",
+        max_policy_days: 3,
+        is_emergency: 0,
+        requires_human_approval: 1,
+        hr_decision: "Pending",
+        hr_notes: null,
+        hr_reviewer: null,
+        start_date: fmt(addDays(today, 10)),
+        end_date: fmt(addDays(today, 12)),
+      },
+      {
+        workflow_id: "WF-CAL-106",
+        employee_id: "EMP-104",
+        employee_name: "Sophia Patel",
+        leave_type: "Personal Leave",
+        days: 1,
+        reason: "Personal appointment",
+        status: "APPROVED_BY_HR",
+        recommendation: "APPROVED",
+        max_policy_days: 3,
+        is_emergency: 0,
+        requires_human_approval: 1,
+        hr_decision: "Approved",
+        hr_notes: "Approved.",
+        hr_reviewer: "Sarah Jenkins",
+        start_date: fmt(addDays(today, 14)),
+        end_date: fmt(addDays(today, 14)),
+      }
+    ];
+
+    for (const l of seedLeaves) {
+      await dbRun(
+        `INSERT INTO leave_requests (
+          workflow_id, employee_id, employee_name, leave_type, days, reason, 
+          status, recommendation, max_policy_days, is_emergency, requires_human_approval, 
+          hr_decision, hr_notes, hr_reviewer, start_date, end_date
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          l.workflow_id, l.employee_id, l.employee_name, l.leave_type, l.days, l.reason,
+          l.status, l.recommendation, l.max_policy_days, l.is_emergency, l.requires_human_approval,
+          l.hr_decision, l.hr_notes, l.hr_reviewer, l.start_date, l.end_date
+        ]
       );
     }
   }

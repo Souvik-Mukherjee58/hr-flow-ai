@@ -7,6 +7,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, portalMode, onO
       items: [
         { id: "hr_approvals", label: "Human HR Approvals Queue", icon: "👤", badge: "Pending HR" },
         { id: "dashboard", label: "Workforce Executive Overview", icon: "📊" },
+        { id: "calendar", label: "Team Availability Calendar", icon: "📅", badge: "Live" },
         { id: "employees", label: "Employee Directory & Capacity", icon: "👥" },
       ],
     },
@@ -31,6 +32,7 @@ export default function Sidebar({ activeTab, setActiveTab, user, portalMode, onO
       group: "EMPLOYEE SELF-SERVICE",
       items: [
         { id: "leave", label: "Submit Leave & AI Check", icon: "⚡", badge: "3d Cap" },
+        { id: "calendar", label: "Team Availability & PTO", icon: "📅" },
         { id: "dashboard", label: "My Workload Overview", icon: "📊" },
         { id: "burnout", label: "My Capacity & Burnout Score", icon: "🔥" },
       ],

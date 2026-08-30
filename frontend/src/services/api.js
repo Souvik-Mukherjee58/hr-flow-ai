@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Local state tracking for registered accounts in offline mode
 const LOCAL_USERS_KEY = "hrmotion_registered_users";
@@ -313,3 +313,134 @@ export async function fetchLeaveHistory() {
 export async function fetchAnalytics() {
   return await request("/analytics");
 }
+
+// Calendar & Team Availability APIs
+export async function fetchCalendarEvents() {
+  try {
+    return await request("/calendar/events");
+  } catch (err) {
+    if (err.message.includes("Unable to connect to backend")) {
+      const today = new Date();
+      const fmt = (d) => d.toISOString().split("T")[0];
+      const addDays = (d, n) => {
+        const copy = new Date(d);
+        copy.setDate(copy.getDate() + n);
+        return copy;
+      };
+
+      const fallbackEvents = [
+        {
+          workflow_id: "WF-CAL-101",
+          employee_id: "EMP-101",
+          employee_name: "Alex Rivera",
+          department: "Engineering",
+          role: "Senior Frontend Engineer",
+          avatar: "AR",
+          leave_type: "Vacation",
+          days: 3,
+          start_date: fmt(addDays(today, 1)),
+          end_date: fmt(addDays(today, 3)),
+          status: "APPROVED_BY_HR",
+          reason: "Family trip and mental reset",
+          burnout_risk: "High",
+          workload_score: 88,
+          is_emergency: 0,
+        },
+        {
+          workflow_id: "WF-CAL-102",
+          employee_id: "EMP-103",
+          employee_name: "David Chen",
+          department: "Data Science",
+          role: "AI Research Lead",
+          avatar: "DC",
+          leave_type: "Emergency Leave",
+          days: 4,
+          start_date: fmt(addDays(today, 2)),
+          end_date: fmt(addDays(today, 5)),
+          status: "APPROVED_BY_HR",
+          reason: "Urgent medical checkup & recovery",
+          burnout_risk: "Critical",
+          workload_score: 92,
+          is_emergency: 1,
+        },
+        {
+          workflow_id: "WF-CAL-103",
+          employee_id: "EMP-102",
+          employee_name: "Jessica Taylor",
+          department: "Product",
+          role: "Principal Product Manager",
+          avatar: "JT",
+          leave_type: "Casual Leave",
+          days: 2,
+          start_date: fmt(addDays(today, 7)),
+          end_date: fmt(addDays(today, 8)),
+          status: "APPROVED_BY_HR",
+          reason: "Personal event",
+          burnout_risk: "Moderate",
+          workload_score: 65,
+          is_emergency: 0,
+        },
+        {
+          workflow_id: "WF-CAL-105",
+          employee_id: "EMP-106",
+          employee_name: "Emily Watson",
+          department: "Design",
+          role: "Lead Product Designer",
+          avatar: "EW",
+          leave_type: "Vacation",
+          days: 3,
+          start_date: fmt(addDays(today, 10)),
+          end_date: fmt(addDays(today, 12)),
+          status: "Pending",
+          reason: "Annual design retreat",
+          burnout_risk: "Low",
+          workload_score: 55,
+          is_emergency: 0,
+        },
+      ];
+
+      return {
+        success: true,
+        summary: {
+          totalEvents: fallbackEvents.length,
+          onLeaveToday: 1,
+          totalEmployees: 6,
+          overallAvailability: "83%",
+          totalCollisions: 1,
+        },
+        departmentCoverage: [
+          { department: "Engineering", totalStaff: 2, currentlyAway: 1, availableStaff: 1, coveragePct: 50, status: "Warning" },
+          { department: "Data Science", totalStaff: 1, currentlyAway: 1, availableStaff: 0, coveragePct: 0, status: "Critical" },
+          { department: "Product", totalStaff: 1, currentlyAway: 0, availableStaff: 1, coveragePct: 100, status: "Optimal" },
+          { department: "People Operations", totalStaff: 1, currentlyAway: 0, availableStaff: 1, coveragePct: 100, status: "Optimal" },
+          { department: "Sales", totalStaff: 1, currentlyAway: 0, availableStaff: 1, coveragePct: 100, status: "Optimal" },
+          { department: "Design", totalStaff: 1, currentlyAway: 0, availableStaff: 1, coveragePct: 100, status: "Optimal" },
+        ],
+        overlaps: [
+          {
+            date: fmt(addDays(today, 2)),
+            department: "Engineering & Data",
+            count: 2,
+            employees: ["Alex Rivera", "David Chen"],
+            capacityLostPct: 67,
+            severity: "Critical",
+            description: "2 technical leads scheduled off simultaneously (Alex Rivera, David Chen). Tech capacity down 67%.",
+          },
+        ],
+        events: fallbackEvents,
+      };
+    }
+    throw err;
+  }
+}
+
+const api = {
+  get: async (endpoint, options = {}) => ({ data: await request(endpoint, { ...options, method: "GET" }) }),
+  post: async (endpoint, body, options = {}) => ({ data: await request(endpoint, { ...options, method: "POST", body: JSON.stringify(body) }) }),
+  put: async (endpoint, body, options = {}) => ({ data: await request(endpoint, { ...options, method: "PUT", body: JSON.stringify(body) }) }),
+  delete: async (endpoint, options = {}) => ({ data: await request(endpoint, { ...options, method: "DELETE" }) }),
+};
+
+export default api;
+
+

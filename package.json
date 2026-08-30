@@ -1,0 +1,13 @@
+{
+  "name": "hr-flow-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "HR Flow AI - Autonomous Multi-Agent Workforce & Leave Governance System",
+  "scripts": {
+    "install:all": "npm.cmd --prefix backend install && npm.cmd --prefix frontend install",
+    "dev:backend": "npm.cmd --prefix backend run dev",
+    "dev:frontend": "npm.cmd --prefix frontend run dev",
+    "start:backend": "npm.cmd --prefix backend start",
+    "build:frontend": "npm.cmd --prefix frontend run build"
+  }
+}

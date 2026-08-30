@@ -12,6 +12,7 @@ export default function Header({ activeTab, user, portalMode, setPortalMode, onN
   const hrTitleMap = {
     hr_approvals: "Human HR Approvals Hub & Governance Center",
     dashboard: "Workforce Executive Overview & AI Analytics",
+    calendar: "Team Availability Calendar & Overlap Radar",
     employees: "Employee Directory & Capacity Radar",
     leave: "AI Leave Intelligence & Policy Verification",
     burnout: "Burnout Risk & Workload Monitor",
@@ -21,6 +22,7 @@ export default function Header({ activeTab, user, portalMode, setPortalMode, onN
 
   const employeeTitleMap = {
     leave: "Apply for Leave & AI Policy Verification",
+    calendar: "Team Schedule & PTO Availability Calendar",
     dashboard: "My Personal Workforce Overview",
     burnout: "My Capacity & Burnout Health Monitor",
     settings: "Account & Profile Settings",

@@ -23,16 +23,25 @@ router.post("/leave", async (req, res) => {
     const requiresHuman = isAutoRejected ? 0 : 1;
     const hrStatus = isAutoRejected ? "AUTO_REJECTED" : "Pending";
 
+    const daysRequested = Number(result.leaveRequest?.days) || 1;
+    const reqStartDate = req.body.startDate || new Date(Date.now() + 86400000).toISOString().split("T")[0];
+    let reqEndDate = req.body.endDate;
+    if (!reqEndDate) {
+      const calcEnd = new Date(reqStartDate);
+      calcEnd.setDate(calcEnd.getDate() + Math.max(0, daysRequested - 1));
+      reqEndDate = calcEnd.toISOString().split("T")[0];
+    }
+
     // Save to SQLite database
     try {
       await dbRun(
-        "INSERT INTO leave_requests (workflow_id, employee_id, employee_name, leave_type, days, reason, status, recommendation, max_policy_days, is_emergency, requires_human_approval, hr_decision) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO leave_requests (workflow_id, employee_id, employee_name, leave_type, days, reason, status, recommendation, max_policy_days, is_emergency, requires_human_approval, hr_decision, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           workflowId,
           result.leaveRequest?.employeeId || "EMP-101",
           result.leaveRequest?.employeeName || "Employee",
           result.leaveRequest?.leaveType || "Vacation",
-          result.leaveRequest?.days || 1,
+          daysRequested,
           result.leaveRequest?.reason || "Leave request",
           hrStatus,
           rec.finalDecision || (isAutoRejected ? "REJECTED" : "PENDING_HR_DECISION"),
@@ -40,6 +49,8 @@ router.post("/leave", async (req, res) => {
           isEmergency,
           requiresHuman,
           hrStatus,
+          reqStartDate,
+          reqEndDate,
         ]
       );
 

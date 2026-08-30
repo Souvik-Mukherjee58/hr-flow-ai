@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
 import LeaveRequests from "./pages/LeaveRequests";
 import HrApprovals from "./pages/HrApprovals";
+import TeamCalendar from "./pages/TeamCalendar";
 import Intelligence from "./pages/Intelligence";
 import AuditLogs from "./pages/AuditLogs";
 import Settings from "./pages/Settings";
@@ -31,10 +32,10 @@ export default function App() {
   const applyUserRolePermissions = (u) => {
     if (isHrUser(u)) {
       setPortalMode("hr");
-      setActiveTab((prev) => (["hr_approvals", "dashboard", "employees", "leave", "burnout", "audit", "settings"].includes(prev) ? prev : "hr_approvals"));
+      setActiveTab((prev) => (["hr_approvals", "dashboard", "calendar", "employees", "leave", "burnout", "audit", "settings"].includes(prev) ? prev : "hr_approvals"));
     } else {
       setPortalMode("employee");
-      setActiveTab((prev) => (["leave", "dashboard", "burnout", "settings"].includes(prev) ? prev : "leave"));
+      setActiveTab((prev) => (["leave", "calendar", "dashboard", "burnout", "settings"].includes(prev) ? prev : "leave"));
     }
   };
 
@@ -142,6 +143,7 @@ export default function App() {
 
             {/* Shared / Persona-Adapted Views */}
             {activeTab === "dashboard" && <Dashboard onNavigateToLeave={() => setActiveTab("leave")} />}
+            {activeTab === "calendar" && <TeamCalendar user={user} portalMode={portalMode} onApplyLeaveClick={() => setActiveTab("leave")} />}
             {activeTab === "leave" && <LeaveRequests />}
             {activeTab === "burnout" && <Intelligence />}
             {activeTab === "settings" && <Settings user={user} />}
