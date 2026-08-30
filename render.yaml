@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: hr-flow-ai-backend
+    name: hr-flow-ai-backend-v2
     runtime: node
     rootDir: backend
     buildCommand: rm -rf node_modules package-lock.json && rm -rf node_modules/sqlite3 && npm install
