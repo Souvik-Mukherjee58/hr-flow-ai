@@ -1,4 +1,4 @@
-import sqlite3 from "sqlite3";
+import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcryptjs";
@@ -7,40 +7,26 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dbPath = path.join(__dirname, "database.db");
 
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error("Failed to connect to SQLite database:", err.message);
-  } else {
-    console.log("Connected to SQLite database at", dbPath);
-  }
-});
+const db = new Database(dbPath);
+console.log("Connected to SQLite database at", dbPath);
 
-// Helper for promise-based queries
+// Helper for promise-based queries (better-sqlite3 is synchronous, wrapping for compatibility)
 export function dbRun(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function (err) {
-      if (err) reject(err);
-      else resolve({ id: this.lastID, changes: this.changes });
-    });
-  });
+  const stmt = db.prepare(sql);
+  const result = stmt.run(params);
+  return Promise.resolve({ id: result.lastInsertRowid, changes: result.changes });
 }
 
 export function dbGet(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+  const stmt = db.prepare(sql);
+  const result = stmt.get(params);
+  return Promise.resolve(result);
 }
 
 export function dbAll(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+  const stmt = db.prepare(sql);
+  const result = stmt.all(params);
+  return Promise.resolve(result);
 }
 
 // Initialize tables and seed initial demo data
