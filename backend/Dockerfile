@@ -5,10 +5,10 @@ WORKDIR /app
 # Install build dependencies for native modules
 RUN apk add --no-cache python3 make g++
 
-COPY package*.json ./
+COPY backend/package*.json ./
 
 RUN npm install --build-from-source
 
-COPY . .
+COPY backend/ .
 
 CMD ["node", "index.js"]
