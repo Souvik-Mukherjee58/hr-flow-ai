@@ -16,4 +16,4 @@ services:
       - key: GROQ_API_KEY
         sync: false
     # Force rebuild by changing this value
-    version: "2"
+    version: "3"

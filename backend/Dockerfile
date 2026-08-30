@@ -5,11 +5,14 @@ WORKDIR /app
 # Install build dependencies for native modules
 RUN apk add --no-cache python3 make g++ sqlite
 
+# Force clean npm cache to avoid cached native modules
+RUN npm cache clean --force
+
 COPY backend/package*.json ./
 
-# Force rebuild of native modules
-RUN npm cache clean --force && \
-    npm install --build-from-source --no-save
+# Remove any existing node_modules and install fresh
+RUN rm -rf node_modules package-lock.json && \
+    npm install --build-from-source --no-cache
 
 COPY backend/ .
 
